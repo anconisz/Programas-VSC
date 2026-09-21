@@ -1,0 +1,2451 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Video Batch Transcriber</title>
+    <link rel="icon" type="image/x-icon" href="app_icon.ico">
+    <link rel="icon" type="image/png" href="app_icon.png">
+    <!-- JSZip for packaging individual .txt files into a ZIP folder -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            /* Common Brand Colors */
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+
+            /* Light Theme Defaults */
+            --bg-page: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+            --surface: #ffffff;
+            --surface-glass: rgba(255, 255, 255, 0.88);
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-label: #334155;
+            --code-bg: #e2e8f0;
+            --code-text: #334155;
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --api-box-bg: #f8fafc;
+            --api-box-border: #cbd5e1;
+            --banner-bg: #eff6ff;
+            --banner-border: #bfdbfe;
+            --banner-text: #1e40af;
+            --dropzone-bg: rgba(255, 255, 255, 0.85);
+            --dropzone-border: #94a3b8;
+            --dropzone-hover-bg: #f0f7ff;
+            --btn-outline-bg: #ffffff;
+            --btn-outline-border: #cbd5e1;
+            --btn-outline-hover-bg: #f8fafc;
+            --btn-secondary-bg: #475569;
+            --btn-secondary-hover-bg: #334155;
+            --btn-danger-outline-bg: #ffffff;
+            --btn-danger-outline-border: #fecaca;
+            --btn-danger-outline-hover: #fef2f2;
+            --progress-track: #f1f5f9;
+            --trans-area-bg: #f8fafc;
+            --trans-output-bg: #ffffff;
+            
+            --pill-queued-bg: #f1f5f9;
+            --pill-queued-color: #64748b;
+            --pill-extract-bg: #fef3c7;
+            --pill-extract-color: #b45309;
+            --pill-transcribe-bg: #eff6ff;
+            --pill-transcribe-color: #1d4ed8;
+            --pill-complete-bg: #ecfdf5;
+            --pill-complete-color: #065f46;
+            --pill-error-bg: #fef2f2;
+            --pill-error-color: #991b1b;
+
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --bg-page: radial-gradient(circle at 50% 0%, #172033 0%, #0b1120 50%, #060a12 100%);
+            --surface: #0f172a;
+            --surface-glass: rgba(15, 23, 42, 0.88);
+            --card-bg: #131d33;
+            --border: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-label: #cbd5e1;
+            --code-bg: #1e293b;
+            --code-text: #93c5fd;
+            --input-bg: #090e1a;
+            --input-border: #334155;
+            --api-box-bg: #090f1d;
+            --api-box-border: #293548;
+            --banner-bg: #172554;
+            --banner-border: #1e40af;
+            --banner-text: #bfdbfe;
+            --dropzone-bg: rgba(15, 23, 42, 0.75);
+            --dropzone-border: #334155;
+            --dropzone-hover-bg: rgba(30, 58, 138, 0.3);
+            --btn-outline-bg: #1e293b;
+            --btn-outline-border: #334155;
+            --btn-outline-hover-bg: #2d3b55;
+            --btn-secondary-bg: #334155;
+            --btn-secondary-hover-bg: #475569;
+            --btn-danger-outline-bg: rgba(239, 68, 68, 0.12);
+            --btn-danger-outline-border: rgba(239, 68, 68, 0.35);
+            --btn-danger-outline-hover: rgba(239, 68, 68, 0.25);
+            --progress-track: #0b1222;
+            --trans-area-bg: #090f1d;
+            --trans-output-bg: #060a14;
+
+            --pill-queued-bg: #1e293b;
+            --pill-queued-color: #94a3b8;
+            --pill-extract-bg: rgba(245, 158, 11, 0.18);
+            --pill-extract-color: #fbbf24;
+            --pill-transcribe-bg: rgba(59, 130, 246, 0.22);
+            --pill-transcribe-color: #93c5fd;
+            --pill-complete-bg: rgba(16, 185, 129, 0.2);
+            --pill-complete-color: #34d399;
+            --pill-error-bg: rgba(239, 68, 68, 0.2);
+            --pill-error-color: #f87171;
+
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-main);
+            font-size: 14px;
+            line-height: 1.45;
+            padding: 24px 16px 60px;
+            display: flex;
+            justify-content: center;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Dark mode scrollbars */
+        [data-theme="dark"] ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        [data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #0b1222;
+        }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Dark mode native audio player integration */
+        [data-theme="dark"] audio {
+            filter: invert(0.88) hue-rotate(180deg);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 880px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Top Nav Bar & Control Buttons */
+        .top-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+
+        .nav-controls-column {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .theme-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border);
+            background: var(--surface-glass);
+            color: var(--text-main);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* Header */
+        .app-header {
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .header-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            font-size: 0.74rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .app-header h1 {
+            font-size: clamp(1.45rem, 3.2vw, 2.05rem);
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            max-width: 580px;
+            margin: 0 auto;
+        }
+
+        .subtitle code {
+            background: var(--code-bg);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: var(--code-text);
+        }
+
+        /* Settings Card */
+        .settings-card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 14px;
+            align-items: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-item label {
+            font-size: 0.82rem;
+            color: var(--text-label);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 7px 11px;
+            font-size: 0.85rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-control option {
+            background: var(--surface);
+            color: var(--text-main);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .checkbox-item {
+            justify-content: center;
+            padding-bottom: 4px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-label);
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* API Key Box */
+        .api-key-container {
+            background: var(--api-box-bg);
+            border: 1px dashed var(--api-box-border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+        }
+
+        .api-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .api-key-row .form-control {
+            flex: 1;
+            min-width: 190px;
+        }
+
+        .api-link {
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .api-link:hover {
+            text-decoration: underline;
+        }
+
+        .helper-text {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 0.76rem;
+        }
+
+        /* Saved API Key indicator */
+        .saved-key-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 0.82rem;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .saved-key-indicator .key-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        [data-theme="dark"] .saved-key-indicator .key-badge {
+            color: #34d399;
+        }
+
+        .btn-link {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 3px 6px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-link:hover {
+            opacity: 0.85;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-icon-key {
+            background: none;
+            border: none;
+            outline: none;
+            box-shadow: none;
+            font-size: 1.15rem;
+            cursor: pointer;
+            padding: 2px;
+            line-height: 1;
+            transition: transform 0.25s ease, opacity 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            opacity: 0.75;
+        }
+
+        .btn-icon-key:hover {
+            opacity: 1;
+            transform: rotate(45deg) scale(1.15);
+            background: none;
+            border: none;
+            outline: none;
+            box-shadow: none;
+        }
+
+        .btn-icon-key:focus,
+        .btn-icon-key:focus-visible,
+        .btn-icon-key:active {
+            outline: none;
+            box-shadow: none;
+            background: none;
+            border: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Model Loading Banner */
+        .model-status-banner {
+            background: var(--banner-bg);
+            border: 1px solid var(--banner-border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+        }
+
+        .banner-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.84rem;
+            color: var(--banner-text);
+            font-weight: 500;
+        }
+
+        .model-progress-bar-container {
+            height: 5px;
+            background: var(--progress-track);
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .model-progress-bar {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        /* Dropzone */
+        .dropzone-section {
+            width: 100%;
+        }
+
+        .dropzone {
+            position: relative;
+            border: 2px dashed var(--dropzone-border);
+            border-radius: var(--radius-md);
+            background: var(--dropzone-bg);
+            padding: 26px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .dropzone:hover, .dropzone.drag-over {
+            border-color: var(--primary);
+            background: var(--dropzone-hover-bg);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .file-input-hidden {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-icon {
+            font-size: 2.2rem;
+            margin-bottom: 6px;
+            display: inline-block;
+        }
+
+        .dropzone-content h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .dropzone-content p {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            margin-bottom: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.78rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #ffffff;
+        }
+
+        .btn-success:hover {
+            background: var(--success-hover);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: var(--btn-secondary-hover-bg);
+        }
+
+        .btn-outline {
+            background: var(--btn-outline-bg);
+            color: var(--text-main);
+            border: 1px solid var(--btn-outline-border);
+        }
+
+        .btn-outline:hover {
+            background: var(--btn-outline-hover-bg);
+            border-color: var(--text-muted);
+        }
+
+        .btn-danger-outline {
+            background: var(--btn-danger-outline-bg);
+            color: var(--danger);
+            border: 1px solid var(--btn-danger-outline-border);
+        }
+
+        .btn-danger-outline:hover {
+            background: var(--btn-danger-outline-hover);
+            border-color: var(--danger);
+        }
+
+        /* Queue Section */
+        .queue-section {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .queue-summary {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .queue-summary h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .queue-stats {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .queue-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* File Cards List */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .file-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--card-bg);
+            padding: 12px 14px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .file-card.transcribing {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+
+        .file-card.completed {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .file-card.error {
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .file-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .file-badge-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .file-meta {
+            min-width: 0;
+        }
+
+        .file-title {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-submeta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 6px;
+            margin-top: 1px;
+        }
+
+        .file-status-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Status Badges */
+        .status-pill {
+            padding: 3px 8px;
+            border-radius: var(--radius-full);
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .status-pill.queued {
+            background: var(--pill-queued-bg);
+            color: var(--pill-queued-color);
+        }
+
+        .status-pill.extracting {
+            background: var(--pill-extract-bg);
+            color: var(--pill-extract-color);
+        }
+
+        .status-pill.transcribing {
+            background: var(--pill-transcribe-bg);
+            color: var(--pill-transcribe-color);
+        }
+
+        .status-pill.completed {
+            background: var(--pill-complete-bg);
+            color: var(--pill-complete-color);
+        }
+
+        .status-pill.error {
+            background: var(--pill-error-bg);
+            color: var(--pill-error-color);
+        }
+
+        /* Card Progress bar */
+        .card-progress-container {
+            width: 100%;
+            height: 5px;
+            background: var(--progress-track);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .card-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            transition: width 0.2s ease;
+        }
+
+        .card-progress-bar.animated {
+            width: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #3b82f6 100%);
+            background-size: 200% 100%;
+            animation: progressShimmer 1.5s infinite linear;
+        }
+
+        @keyframes progressShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Output textarea */
+        .transcription-area-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: var(--trans-area-bg);
+            border-radius: var(--radius-sm);
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+        }
+
+        .transcription-area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .transcription-output {
+            width: 100%;
+            min-height: 75px;
+            max-height: 220px;
+            resize: vertical;
+            border: 1px solid var(--input-border);
+            border-radius: 5px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 0.84rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            background: var(--trans-output-bg);
+            outline: none;
+        }
+
+        .transcription-output:focus {
+            border-color: var(--primary);
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--text-muted);
+            padding: 3px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+
+        .btn-icon:hover {
+            color: var(--danger);
+            background: var(--btn-danger-outline-bg);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--surface);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="top-nav-bar">
+                <div class="header-badge" id="headerBadge">Batch Video to Text</div>
+                <div class="nav-controls-column">
+                    <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark/light theme">
+                        <span id="themeIcon">☀️</span> <span id="themeLabel">Light Mode</span>
+                    </button>
+                    <button type="button" id="langToggleBtn" class="theme-toggle-btn" title="Toggle language / Alternar idioma">
+                        <span id="langIcon">🌐</span> <span id="langLabel">Português</span>
+                    </button>
+                </div>
+            </div>
+            <h1 id="appTitle">Multi-Video Transcriber</h1>
+            <p class="subtitle" id="appSubtitle">Drop multiple videos to extract audio, transcribe speech with AI, and export as a single <code>.txt</code> or a <code>.zip</code> bundle.</p>
+        </header>
+
+        <!-- Engine & Settings Bar -->
+        <section class="settings-card">
+            <div class="settings-grid">
+                <!-- Engine Selector -->
+                <div class="setting-item">
+                    <label for="engineSelect"><strong id="labelEngine">Transcription Engine</strong></label>
+                    <select id="engineSelect" class="form-control">
+                        <option value="assemblyai" selected>AssemblyAI (Specialist Audio AI - Best for Gaming & Noise)</option>
+                        <option value="gemini">Google Gemini 3.6 Flash (Fast Cloud)</option>
+                        <option value="local">In-Browser Whisper AI (Free, 100% Private, No API Key)</option>
+                    </select>
+                </div>
+
+                <!-- Language Selector -->
+                <div class="setting-item">
+                    <label for="languageSelect"><strong id="labelSpokenLang">Spoken Language</strong></label>
+                    <select id="languageSelect" class="form-control">
+                        <option value="auto" selected>Auto-Detect</option>
+                        <option value="portuguese">Portuguese</option>
+                        <option value="english">English</option>
+                        <option value="spanish">Spanish</option>
+                        <option value="french">French</option>
+                        <option value="german">German</option>
+                        <option value="italian">Italian</option>
+                        <option value="chinese">Chinese</option>
+                        <option value="japanese">Japanese</option>
+                        <option value="korean">Korean</option>
+                        <option value="russian">Russian</option>
+                    </select>
+                </div>
+
+                <!-- Options: Timestamps & Speaker Diarization -->
+                <div class="setting-item" style="display: flex; flex-direction: column; gap: 8px; justify-content: center; padding-bottom: 4px;">
+                    <label class="checkbox-label" for="timestampsToggle">
+                        <input type="checkbox" id="timestampsToggle" checked>
+                        <span id="labelTimestamps">Include Timestamps <code>[00:00]</code></span>
+                    </label>
+                    <label class="checkbox-label" for="diarizationToggle" id="diarizationContainer" title="Identifies different speakers (e.g. Speaker A, Speaker B)">
+                        <input type="checkbox" id="diarizationToggle" checked>
+                        <span id="labelDiarization">Detect Speakers (AssemblyAI)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Compact Saved API Key Indicator (Shown when key is saved) -->
+            <div id="savedKeyIndicator" class="saved-key-indicator" style="display: none;">
+                <div class="key-badge">
+                    <span>✓</span>
+                    <span id="savedKeyText">AssemblyAI API Key is configured and ready</span>
+                </div>
+                <button type="button" id="editSavedKeyBtn" class="btn-icon-key" title="Edit / Change Key">⚙️</button>
+            </div>
+
+            <!-- AssemblyAI API Key Container (Shown when AssemblyAI engine selected & editing) -->
+            <div id="assemblyConfig" class="api-key-container" style="display: block;">
+                <div class="api-key-row">
+                    <div style="flex: 1; min-width: 220px;">
+                        <label for="assemblyApiKey"><strong id="labelAssemblyKey">AssemblyAI API Key:</strong></label>
+                        <input type="password" id="assemblyApiKey" class="form-control" placeholder="Paste your AssemblyAI API key here..." autocomplete="off">
+                    </div>
+                    <button type="button" id="saveAssemblyKeyBtn" class="btn btn-secondary btn-sm" style="margin-top: 18px;">Save Key</button>
+                    <button type="button" id="hideAssemblyKeyBtn" class="btn btn-outline btn-sm" style="margin-top: 18px; display: none;">Hide</button>
+                    <a href="https://www.assemblyai.com/dashboard/signup" target="_blank" rel="noopener noreferrer" class="api-link" id="linkAssemblyKey" style="margin-top: 18px;">Get Free Key ↗</a>
+                </div>
+                <small class="helper-text" id="helperAssemblyKey">AssemblyAI offers free transcription credits on signup. Saved securely in your browser's <code>localStorage</code>.</small>
+            </div>
+
+            <!-- Gemini API Key Container (Shown when Gemini engine selected & editing) -->
+            <div id="geminiConfig" class="api-key-container" style="display: none;">
+                <div class="api-key-row">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="geminiApiKey"><strong id="labelGeminiKey">Gemini API Key:</strong></label>
+                        <input type="password" id="geminiApiKey" class="form-control" placeholder="Paste your Gemini API key here..." autocomplete="off">
+                    </div>
+                    <div style="min-width: 170px;">
+                        <label for="geminiModelSelect"><strong id="labelGeminiModel">Model:</strong></label>
+                        <select id="geminiModelSelect" class="form-control">
+                            <option value="gemini-3.6-flash" selected>gemini-3.6-flash (Recommended)</option>
+                            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+                            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                        </select>
+                    </div>
+                    <button type="button" id="saveApiKeyBtn" class="btn btn-secondary btn-sm" style="margin-top: 18px;">Save Key</button>
+                    <button type="button" id="hideApiKeyBtn" class="btn btn-outline btn-sm" style="margin-top: 18px; display: none;">Hide</button>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="api-link" id="linkGeminiKey" style="margin-top: 18px;">Get Free Key ↗</a>
+                </div>
+                <small class="helper-text" id="helperGeminiKey">Your API key is saved locally in your browser's <code>localStorage</code> and never sent to any third-party server.</small>
+            </div>
+
+            <!-- Model download banner -->
+            <div id="modelStatusBanner" class="model-status-banner" style="display: none;">
+                <div class="banner-content">
+                    <span class="spinner"></span>
+                    <span id="modelStatusText">Preparing Whisper AI engine...</span>
+                </div>
+                <div class="model-progress-bar-container">
+                    <div id="modelProgressBar" class="model-progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dropzone Area -->
+        <section class="dropzone-section">
+            <div id="dropzone" class="dropzone">
+                <input type="file" id="fileInput" multiple accept="video/*,audio/*" class="file-input-hidden">
+                <div class="dropzone-content">
+                    <div class="drop-icon">🎬</div>
+                    <h3 id="dropzoneTitle">Drag & Drop video files here</h3>
+                    <p id="dropzoneDesc">Supports MP4, WebM, MOV, MKV, AVI, and audio formats (MP3, WAV, M4A)</p>
+                    <button type="button" class="btn btn-primary browse-btn" id="browseBtn">
+                        <span id="browseBtnText">Select Video Files</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Queue & Actions Toolbar -->
+        <section id="queueSection" class="queue-section" style="display: none;">
+            <div class="queue-header">
+                <div class="queue-summary">
+                    <h2><span id="queueTitle">Video Queue</span> (<span id="fileCount">0</span>)</h2>
+                    <span id="queueStats" class="queue-stats">0 completed</span>
+                </div>
+                <div class="queue-actions">
+                    <button id="startBtn" class="btn btn-success">
+                        <span id="startBtnText">▶ Start Transcribing</span>
+                    </button>
+                    <button id="exportTxtBtn" class="btn btn-outline" disabled title="Download one combined .txt file with all transcriptions">
+                        <span id="exportTxtBtnText">📄 Download All (.txt)</span>
+                    </button>
+                    <button id="exportZipBtn" class="btn btn-outline" disabled title="Download a .zip folder with individual .txt files for each video">
+                        <span id="exportZipBtnText">📦 Download as .ZIP</span>
+                    </button>
+                    <button id="copyAllBtn" class="btn btn-secondary" disabled title="Copy all transcriptions to clipboard">
+                        <span id="copyAllBtnText">📋 Copy All</span>
+                    </button>
+                    <button id="clearAllBtn" class="btn btn-danger-outline">
+                        <span id="clearAllBtnText">Clear All</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Video File Cards List -->
+            <div id="fileList" class="file-list"></div>
+        </section>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Standalone Application Logic -->
+    <script>
+        (() => {
+            const appBaseUrl = new URL('.', window.location.href).href;
+            const assetRefs = document.querySelectorAll('link[rel~="icon"]');
+            assetRefs.forEach((link) => {
+                const href = link.getAttribute('href');
+                if (!href || !href.includes('app_icon')) return;
+                link.setAttribute('href', new URL(href, appBaseUrl).href);
+            });
+            window.TranscribrApp = Object.assign(window.TranscribrApp || {}, {
+                baseUrl: appBaseUrl,
+                assetBaseUrl: appBaseUrl,
+                appName: 'Transcribr'
+            });
+        })();
+
+        let transcriberPipeline = null;
+        let isTranscribing = false;
+        let shouldStop = false;
+        let fileQueue = [];
+
+        // DOM Elements
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const queueSection = document.getElementById('queueSection');
+        const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const queueStats = document.getElementById('queueStats');
+
+        const engineSelect = document.getElementById('engineSelect');
+        const languageSelect = document.getElementById('languageSelect');
+        const timestampsToggle = document.getElementById('timestampsToggle');
+        const geminiConfig = document.getElementById('geminiConfig');
+        const geminiApiKey = document.getElementById('geminiApiKey');
+        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+
+        const modelStatusBanner = document.getElementById('modelStatusBanner');
+        const modelStatusText = document.getElementById('modelStatusText');
+        const modelProgressBar = document.getElementById('modelProgressBar');
+
+        const assemblyConfig = document.getElementById('assemblyConfig');
+        const assemblyApiKey = document.getElementById('assemblyApiKey');
+        const saveAssemblyKeyBtn = document.getElementById('saveAssemblyKeyBtn');
+        const hideAssemblyKeyBtn = document.getElementById('hideAssemblyKeyBtn');
+        const hideApiKeyBtn = document.getElementById('hideApiKeyBtn');
+        const savedKeyIndicator = document.getElementById('savedKeyIndicator');
+        const savedKeyText = document.getElementById('savedKeyText');
+        const editSavedKeyBtn = document.getElementById('editSavedKeyBtn');
+        const diarizationToggle = document.getElementById('diarizationToggle');
+        const diarizationContainer = document.getElementById('diarizationContainer');
+        let isEditingKey = false;
+
+        const startBtn = document.getElementById('startBtn');
+        const exportTxtBtn = document.getElementById('exportTxtBtn');
+        const exportZipBtn = document.getElementById('exportZipBtn');
+        const copyAllBtn = document.getElementById('copyAllBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const toast = document.getElementById('toast');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeLabel = document.getElementById('themeLabel');
+        const langToggleBtn = document.getElementById('langToggleBtn');
+        const langIcon = document.getElementById('langIcon');
+        const langLabel = document.getElementById('langLabel');
+
+        const I18N = {
+            en: {
+                headerBadge: "Batch Video to Text",
+                appTitle: "Multi-Video Transcriber",
+                appSubtitle: "Drop multiple videos to extract audio, transcribe speech with AI, and export as a single <code>.txt</code> or a <code>.zip</code> bundle.",
+                themeDark: "Dark Mode",
+                themeLight: "Light Mode",
+                langBtnLabel: "Português",
+                langBtnTitle: "Mudar idioma para Português",
+                themeBtnTitleDark: "Switch to Dark Mode",
+                themeBtnTitleLight: "Switch to Light Mode",
+                labelEngine: "Transcription Engine",
+                engineOptions: {
+                    assemblyai: "AssemblyAI (Specialist Audio AI - Best for Gaming & Noise)",
+                    gemini: "Google Gemini 3.6 Flash (Fast Cloud)",
+                    local: "In-Browser Whisper AI (Free, 100% Private, No API Key)"
+                },
+                labelSpokenLang: "Spoken Language",
+                spokenLanguages: {
+                    auto: "Auto-Detect",
+                    portuguese: "Portuguese",
+                    english: "English",
+                    spanish: "Spanish",
+                    french: "French",
+                    german: "German",
+                    italian: "Italian",
+                    chinese: "Chinese",
+                    japanese: "Japanese",
+                    korean: "Korean",
+                    russian: "Russian"
+                },
+                labelTimestamps: "Include Timestamps <code>[00:00]</code>",
+                labelDiarization: "Detect Speakers (AssemblyAI)",
+                diarizationTitle: "Identifies different speakers (e.g. Speaker A, Speaker B)",
+                savedKeyAssembly: "AssemblyAI API Key is configured and ready",
+                savedKeyGemini: "Gemini API Key is configured ({model})",
+                editSavedKeyTitle: "Edit / Change Key",
+                labelAssemblyKey: "AssemblyAI API Key:",
+                phAssemblyKey: "Paste your AssemblyAI API key here...",
+                saveKey: "Save Key",
+                hideKey: "Hide",
+                getFreeKey: "Get Free Key ↗",
+                helperAssemblyKey: "AssemblyAI offers free transcription credits on signup. Saved securely in your browser's <code>localStorage</code>.",
+                labelGeminiKey: "Gemini API Key:",
+                phGeminiKey: "Paste your Gemini API key here...",
+                labelGeminiModel: "Model:",
+                helperGeminiKey: "Your API key is saved locally in your browser's <code>localStorage</code> and never sent to any third-party server.",
+                modelStatusPrep: "Preparing Whisper AI engine...",
+                dropzoneTitle: "Drag & Drop video files here",
+                dropzoneDesc: "Supports MP4, WebM, MOV, MKV, AVI, and audio formats (MP3, WAV, M4A)",
+                browseBtn: "Select Video Files",
+                queueTitle: "Video Queue",
+                queueStats: "{completed} of {total} completed",
+                startTranscribing: "▶ Start Transcribing",
+                stopping: "⏳ Stopping...",
+                downloadAllTxt: "📄 Download All (.txt)",
+                downloadZip: "📦 Download as .ZIP",
+                copyAll: "📋 Copy All",
+                clearAll: "Clear All",
+                extractedAudio: "Extracted Audio:",
+                statusQueued: "Queued",
+                statusExtracting: "Extracting Audio...",
+                statusTranscribing: "Transcribing...",
+                statusCompleted: "Completed",
+                statusError: "Error",
+                cardTranscription: "Transcription:",
+                cardCopy: "📋 Copy",
+                cardDownload: "💾 Download .txt",
+                removeTooltip: "Remove",
+                toastAddedFiles: (n) => `Added ${n} file(s) to queue.`,
+                toastQueueCleared: "Queue cleared.",
+                toastBatchFinished: "Batch transcription finished!",
+                toastCopiedItem: (name) => `Copied transcription for ${name}!`,
+                toastDownloadedItem: (name) => `Downloaded ${name}_transcript.txt`,
+                toastCopiedAll: "Copied all transcriptions to clipboard!",
+                toastDownloadedTxt: "Downloaded single combined .txt file!",
+                toastDownloadedZip: "Downloaded ZIP archive with all transcriptions!",
+                toastPackagingZip: "Packaging ZIP archive...",
+                toastThemeSwitched: (t) => t === 'dark' ? "Dark mode activated!" : "Light mode activated!",
+                toastLangSwitched: "App language switched to English!",
+                toastGeminiSaved: "Gemini settings saved!",
+                toastGeminiRemoved: "Gemini API key removed.",
+                toastAssemblySaved: "AssemblyAI key saved!",
+                toastAssemblyRemoved: "AssemblyAI key removed.",
+                toastWaitStopping: "Please wait for transcription to stop before clearing.",
+                toastValidFilesOnly: "Please upload valid video or audio files.",
+                toastNoExport: "No completed transcriptions to export.",
+                toastNoCopy: "No completed transcriptions to copy."
+            },
+            pt: {
+                headerBadge: "Vídeo para Texto em Lote",
+                appTitle: "Transcritor Multi-Vídeo",
+                appSubtitle: "Arraste múltiplos vídeos para extrair áudio, transcrever com IA e exportar em arquivo <code>.txt</code> único ou <code>.zip</code>.",
+                themeDark: "Modo Escuro",
+                themeLight: "Modo Claro",
+                langBtnLabel: "English",
+                langBtnTitle: "Switch language to English",
+                themeBtnTitleDark: "Mudar para Modo Escuro",
+                themeBtnTitleLight: "Mudar para Modo Claro",
+                labelEngine: "Motor de Transcrição",
+                engineOptions: {
+                    assemblyai: "AssemblyAI (IA Especialista em Áudio - Ideal para Jogos e Ruídos)",
+                    gemini: "Google Gemini 3.6 Flash (Nuvem Rápida)",
+                    local: "Whisper AI no Navegador (Grátis, 100% Privado, Sem Chave API)"
+                },
+                labelSpokenLang: "Idioma Falado",
+                spokenLanguages: {
+                    auto: "Detecção Automática",
+                    portuguese: "Português",
+                    english: "Inglês",
+                    spanish: "Espanhol",
+                    french: "Francês",
+                    german: "Alemão",
+                    italian: "Italiano",
+                    chinese: "Chinês",
+                    japanese: "Japonês",
+                    korean: "Coreano",
+                    russian: "Russo"
+                },
+                labelTimestamps: "Incluir Carimbos de Tempo <code>[00:00]</code>",
+                labelDiarization: "Identificar Falantes (AssemblyAI)",
+                diarizationTitle: "Identifica diferentes interlocutores (ex: Falante A, Falante B)",
+                savedKeyAssembly: "Chave API AssemblyAI configurada e pronta",
+                savedKeyGemini: "Chave API Gemini configurada ({model})",
+                editSavedKeyTitle: "Editar / Trocar Chave",
+                labelAssemblyKey: "Chave API AssemblyAI:",
+                phAssemblyKey: "Cole sua chave da AssemblyAI aqui...",
+                saveKey: "Salvar Chave",
+                hideKey: "Ocultar",
+                getFreeKey: "Criar Chave Grátis ↗",
+                helperAssemblyKey: "A AssemblyAI oferece créditos gratuitos no cadastro. Salva com segurança no <code>localStorage</code>.",
+                labelGeminiKey: "Chave API Gemini:",
+                phGeminiKey: "Cole sua chave do Gemini aqui...",
+                labelGeminiModel: "Modelo:",
+                helperGeminiKey: "Sua chave é salva localmente no <code>localStorage</code> do navegador e nunca é enviada a terceiros.",
+                modelStatusPrep: "Preparando motor Whisper AI...",
+                dropzoneTitle: "Arraste e solte arquivos de vídeo aqui",
+                dropzoneDesc: "Suporta MP4, WebM, MOV, MKV, AVI e formatos de áudio (MP3, WAV, M4A)",
+                browseBtn: "Selecionar Arquivos de Vídeo",
+                queueTitle: "Fila de Vídeos",
+                queueStats: "{completed} de {total} concluídos",
+                startTranscribing: "▶ Iniciar Transcrição",
+                stopping: "⏳ Parando...",
+                downloadAllTxt: "📄 Baixar Todos (.txt)",
+                downloadZip: "📦 Baixar em .ZIP",
+                copyAll: "📋 Copiar Tudo",
+                clearAll: "Limpar Tudo",
+                extractedAudio: "Áudio Extraído:",
+                statusQueued: "Na Fila",
+                statusExtracting: "Extraindo Áudio...",
+                statusTranscribing: "Transcrevendo...",
+                statusCompleted: "Concluído",
+                statusError: "Erro",
+                cardTranscription: "Transcrição:",
+                cardCopy: "📋 Copiar",
+                cardDownload: "💾 Baixar .txt",
+                removeTooltip: "Remover",
+                toastAddedFiles: (n) => `${n} arquivo(s) adicionado(s) à fila.`,
+                toastQueueCleared: "Fila limpa.",
+                toastBatchFinished: "Transcrição em lote concluída!",
+                toastCopiedItem: (name) => `Transcrição de ${name} copiada!`,
+                toastDownloadedItem: (name) => `${name}_transcript.txt baixado!`,
+                toastCopiedAll: "Todas as transcrições copiadas para a área de transferência!",
+                toastDownloadedTxt: "Arquivo .txt único baixado!",
+                toastDownloadedZip: "Arquivo ZIP com todas as transcrições baixado!",
+                toastPackagingZip: "Empacotando arquivo ZIP...",
+                toastThemeSwitched: (t) => t === 'dark' ? "Tema escuro ativado!" : "Tema claro ativado!",
+                toastLangSwitched: "Idioma alterado para Português!",
+                toastGeminiSaved: "Configurações do Gemini salvas!",
+                toastGeminiRemoved: "Chave API do Gemini removida.",
+                toastAssemblySaved: "Chave AssemblyAI salva!",
+                toastAssemblyRemoved: "Chave AssemblyAI removida.",
+                toastWaitStopping: "Aguarde a transcrição parar antes de limpar.",
+                toastValidFilesOnly: "Por favor envie arquivos de vídeo ou áudio válidos.",
+                toastNoExport: "Nenhuma transcrição concluída para exportar.",
+                toastNoCopy: "Nenhuma transcrição concluída para copiar."
+            }
+        };
+
+        let currentLang = localStorage.getItem('transcribr_app_lang') || 'en';
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('transcribr_theme', theme);
+            const t = I18N[currentLang] || I18N.en;
+            if (theme === 'dark') {
+                if (themeIcon) themeIcon.textContent = '☀️';
+                if (themeLabel) themeLabel.textContent = t.themeLight;
+                if (themeToggleBtn) themeToggleBtn.title = t.themeBtnTitleLight;
+            } else {
+                if (themeIcon) themeIcon.textContent = '🌙';
+                if (themeLabel) themeLabel.textContent = t.themeDark;
+                if (themeToggleBtn) themeToggleBtn.title = t.themeBtnTitleDark;
+            }
+        }
+
+        function applyAppLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('transcribr_app_lang', lang);
+            const t = I18N[lang] || I18N.en;
+
+            // Header & Badges
+            const headerBadge = document.getElementById('headerBadge');
+            if (headerBadge) headerBadge.textContent = t.headerBadge;
+            const appTitle = document.getElementById('appTitle');
+            if (appTitle) appTitle.textContent = t.appTitle;
+            const appSubtitle = document.getElementById('appSubtitle');
+            if (appSubtitle) appSubtitle.innerHTML = t.appSubtitle;
+
+            // Theme toggle label & title
+            const curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            if (themeLabel) themeLabel.textContent = curTheme === 'dark' ? t.themeLight : t.themeDark;
+            if (themeToggleBtn) themeToggleBtn.title = curTheme === 'dark' ? t.themeBtnTitleLight : t.themeBtnTitleDark;
+
+            // Language toggle button
+            if (langIcon) langIcon.textContent = '🌐';
+            if (langLabel) langLabel.textContent = t.langBtnLabel;
+            if (langToggleBtn) langToggleBtn.title = t.langBtnTitle;
+
+            // Engine label & options
+            const labelEngine = document.getElementById('labelEngine');
+            if (labelEngine) labelEngine.textContent = t.labelEngine;
+            if (engineSelect) {
+                Array.from(engineSelect.options).forEach(opt => {
+                    if (t.engineOptions[opt.value]) opt.textContent = t.engineOptions[opt.value];
+                });
+            }
+
+            // Spoken Language label & options (no parentheses!)
+            const labelSpokenLang = document.getElementById('labelSpokenLang');
+            if (labelSpokenLang) labelSpokenLang.textContent = t.labelSpokenLang;
+            if (languageSelect) {
+                Array.from(languageSelect.options).forEach(opt => {
+                    if (t.spokenLanguages[opt.value]) opt.textContent = t.spokenLanguages[opt.value];
+                });
+            }
+
+            // Timestamps & Diarization
+            const labelTimestamps = document.getElementById('labelTimestamps');
+            if (labelTimestamps) labelTimestamps.innerHTML = t.labelTimestamps;
+            const labelDiarization = document.getElementById('labelDiarization');
+            if (labelDiarization) labelDiarization.textContent = t.labelDiarization;
+            if (diarizationContainer) diarizationContainer.title = t.diarizationTitle;
+
+            // Keys & indicators
+            if (editSavedKeyBtn) {
+                editSavedKeyBtn.textContent = '⚙️';
+                editSavedKeyBtn.title = t.editSavedKeyTitle;
+            }
+
+            const labelAssemblyKey = document.getElementById('labelAssemblyKey');
+            if (labelAssemblyKey) labelAssemblyKey.textContent = t.labelAssemblyKey;
+            if (assemblyApiKey) assemblyApiKey.placeholder = t.phAssemblyKey;
+            if (saveAssemblyKeyBtn) saveAssemblyKeyBtn.textContent = t.saveKey;
+            if (hideAssemblyKeyBtn) hideAssemblyKeyBtn.textContent = t.hideKey;
+            const linkAssemblyKey = document.getElementById('linkAssemblyKey');
+            if (linkAssemblyKey) linkAssemblyKey.textContent = t.getFreeKey;
+            const helperAssemblyKey = document.getElementById('helperAssemblyKey');
+            if (helperAssemblyKey) helperAssemblyKey.innerHTML = t.helperAssemblyKey;
+
+            const labelGeminiKey = document.getElementById('labelGeminiKey');
+            if (labelGeminiKey) labelGeminiKey.textContent = t.labelGeminiKey;
+            if (geminiApiKey) geminiApiKey.placeholder = t.phGeminiKey;
+            const labelGeminiModel = document.getElementById('labelGeminiModel');
+            if (labelGeminiModel) labelGeminiModel.textContent = t.labelGeminiModel;
+            if (saveApiKeyBtn) saveApiKeyBtn.textContent = t.saveKey;
+            if (hideApiKeyBtn) hideApiKeyBtn.textContent = t.hideKey;
+            const linkGeminiKey = document.getElementById('linkGeminiKey');
+            if (linkGeminiKey) linkGeminiKey.textContent = t.getFreeKey;
+            const helperGeminiKey = document.getElementById('helperGeminiKey');
+            if (helperGeminiKey) helperGeminiKey.innerHTML = t.helperGeminiKey;
+
+            // Dropzone
+            const dropzoneTitle = document.getElementById('dropzoneTitle');
+            if (dropzoneTitle) dropzoneTitle.textContent = t.dropzoneTitle;
+            const dropzoneDesc = document.getElementById('dropzoneDesc');
+            if (dropzoneDesc) dropzoneDesc.textContent = t.dropzoneDesc;
+            const browseBtnText = document.getElementById('browseBtnText');
+            if (browseBtnText) browseBtnText.textContent = t.browseBtn;
+
+            // Queue
+            const queueTitle = document.getElementById('queueTitle');
+            if (queueTitle) queueTitle.textContent = t.queueTitle;
+            const exportTxtBtnText = document.getElementById('exportTxtBtnText');
+            if (exportTxtBtnText) exportTxtBtnText.textContent = t.downloadAllTxt;
+            const exportZipBtnText = document.getElementById('exportZipBtnText');
+            if (exportZipBtnText) exportZipBtnText.textContent = t.downloadZip;
+            const copyAllBtnText = document.getElementById('copyAllBtnText');
+            if (copyAllBtnText) copyAllBtnText.textContent = t.copyAll;
+            const clearAllBtnText = document.getElementById('clearAllBtnText');
+            if (clearAllBtnText) clearAllBtnText.textContent = t.clearAll;
+
+            updateEngineVisibility();
+            updateQueueUI();
+        }
+
+        function updateEngineVisibility() {
+            const engine = engineSelect.value;
+            const hasAssemblyKey = Boolean(localStorage.getItem('assemblyai_api_key'));
+            const hasGeminiKey = Boolean(localStorage.getItem('gemini_transcribe_api_key'));
+            const t = I18N[currentLang] || I18N.en;
+
+            if (diarizationContainer) {
+                diarizationContainer.style.display = engine === 'assemblyai' ? 'flex' : 'none';
+            }
+
+            if (engine === 'assemblyai') {
+                if (hasAssemblyKey && !isEditingKey) {
+                    savedKeyIndicator.style.display = 'flex';
+                    savedKeyText.textContent = t.savedKeyAssembly;
+                    assemblyConfig.style.display = 'none';
+                } else {
+                    savedKeyIndicator.style.display = 'none';
+                    assemblyConfig.style.display = 'block';
+                    if (hideAssemblyKeyBtn) hideAssemblyKeyBtn.style.display = hasAssemblyKey ? 'inline-flex' : 'none';
+                }
+                geminiConfig.style.display = 'none';
+            } else if (engine === 'gemini') {
+                if (hasGeminiKey && !isEditingKey) {
+                    savedKeyIndicator.style.display = 'flex';
+                    const model = localStorage.getItem('gemini_transcribe_model') || 'gemini-3.6-flash';
+                    savedKeyText.textContent = t.savedKeyGemini.replace('{model}', model);
+                    geminiConfig.style.display = 'none';
+                } else {
+                    savedKeyIndicator.style.display = 'none';
+                    geminiConfig.style.display = 'block';
+                    if (hideApiKeyBtn) hideApiKeyBtn.style.display = hasGeminiKey ? 'inline-flex' : 'none';
+                }
+                assemblyConfig.style.display = 'none';
+            } else {
+                savedKeyIndicator.style.display = 'none';
+                assemblyConfig.style.display = 'none';
+                geminiConfig.style.display = 'none';
+            }
+        }
+
+        // Load saved settings
+        const storedApiKey = localStorage.getItem('gemini_transcribe_api_key') || '';
+        if (storedApiKey) {
+            geminiApiKey.value = storedApiKey;
+        }
+        const storedAssemblyKey = localStorage.getItem('assemblyai_api_key') || '';
+        if (storedAssemblyKey) {
+            assemblyApiKey.value = storedAssemblyKey;
+        }
+        const storedDiarization = localStorage.getItem('assemblyai_diarization');
+        if (storedDiarization !== null && diarizationToggle) {
+            diarizationToggle.checked = storedDiarization === 'true';
+        }
+        if (diarizationToggle) {
+            diarizationToggle.addEventListener('change', () => {
+                localStorage.setItem('assemblyai_diarization', diarizationToggle.checked);
+            });
+        }
+        const storedModel = localStorage.getItem('gemini_transcribe_model') || 'gemini-3.6-flash';
+        const modelSelectEl = document.getElementById('geminiModelSelect');
+        if (modelSelectEl && storedModel) {
+            modelSelectEl.value = storedModel;
+        }
+
+        // Auto-select preferred engine (AssemblyAI or Gemini) if keys exist
+        const storedEngine = localStorage.getItem('gemini_transcribe_engine') || (storedAssemblyKey ? 'assemblyai' : (storedApiKey ? 'gemini' : 'assemblyai'));
+        engineSelect.value = storedEngine;
+
+        // Initialize Theme and App Language
+        const savedTheme = localStorage.getItem('transcribr_theme') || 'dark';
+        applyTheme(savedTheme);
+        applyAppLanguage(currentLang);
+
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                const current = document.documentElement.getAttribute('data-theme') || 'dark';
+                const nextTheme = current === 'dark' ? 'light' : 'dark';
+                applyTheme(nextTheme);
+                const t = I18N[currentLang] || I18N.en;
+                showToast(t.toastThemeSwitched(nextTheme));
+            });
+        }
+
+        if (langToggleBtn) {
+            langToggleBtn.addEventListener('click', () => {
+                const nextLang = currentLang === 'en' ? 'pt' : 'en';
+                applyAppLanguage(nextLang);
+                showToast(I18N[nextLang].toastLangSwitched);
+            });
+        }
+
+        engineSelect.addEventListener('change', () => {
+            isEditingKey = false;
+            localStorage.setItem('gemini_transcribe_engine', engineSelect.value);
+            updateEngineVisibility();
+        });
+
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        dropzone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                addFilesToQueue(Array.from(e.target.files));
+                fileInput.value = '';
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('drag-over');
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                addFilesToQueue(Array.from(dt.files));
+            }
+        });
+
+        saveApiKeyBtn.addEventListener('click', () => {
+            const t = I18N[currentLang] || I18N.en;
+            const key = geminiApiKey.value.trim();
+            const model = document.getElementById('geminiModelSelect')?.value || 'gemini-3.6-flash';
+            localStorage.setItem('gemini_transcribe_model', model);
+            if (key) {
+                localStorage.setItem('gemini_transcribe_api_key', key);
+                showToast(t.toastGeminiSaved);
+                isEditingKey = false;
+            } else {
+                localStorage.removeItem('gemini_transcribe_api_key');
+                showToast(t.toastGeminiRemoved);
+                isEditingKey = true;
+            }
+            updateEngineVisibility();
+        });
+
+        saveAssemblyKeyBtn.addEventListener('click', () => {
+            const t = I18N[currentLang] || I18N.en;
+            const key = assemblyApiKey.value.trim();
+            if (key) {
+                localStorage.setItem('assemblyai_api_key', key);
+                showToast(t.toastAssemblySaved);
+                isEditingKey = false;
+            } else {
+                localStorage.removeItem('assemblyai_api_key');
+                showToast(t.toastAssemblyRemoved);
+                isEditingKey = true;
+            }
+            updateEngineVisibility();
+        });
+
+        if (editSavedKeyBtn) {
+            editSavedKeyBtn.addEventListener('click', () => {
+                isEditingKey = true;
+                updateEngineVisibility();
+                if (engineSelect.value === 'assemblyai') {
+                    assemblyApiKey.focus();
+                } else if (engineSelect.value === 'gemini') {
+                    geminiApiKey.focus();
+                }
+            });
+        }
+
+        if (hideAssemblyKeyBtn) {
+            hideAssemblyKeyBtn.addEventListener('click', () => {
+                isEditingKey = false;
+                updateEngineVisibility();
+            });
+        }
+
+        if (hideApiKeyBtn) {
+            hideApiKeyBtn.addEventListener('click', () => {
+                isEditingKey = false;
+                updateEngineVisibility();
+            });
+        }
+
+        startBtn.addEventListener('click', () => {
+            const t = I18N[currentLang] || I18N.en;
+            if (isTranscribing) {
+                shouldStop = true;
+                startBtn.disabled = true;
+                startBtn.innerHTML = `<span>${t.stopping}</span>`;
+            } else {
+                startBatchTranscription();
+            }
+        });
+
+        exportTxtBtn.addEventListener('click', exportCombinedTxt);
+        exportZipBtn.addEventListener('click', exportZipArchive);
+        copyAllBtn.addEventListener('click', copyAllToClipboard);
+        clearAllBtn.addEventListener('click', clearAllFiles);
+
+        function showToast(msg, duration = 3000) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds === null || seconds === undefined) return "00:00";
+            const totalSecs = Math.floor(seconds);
+            const hrs = Math.floor(totalSecs / 3600);
+            const mins = Math.floor((totalSecs % 3600) / 60);
+            const secs = totalSecs % 60;
+            const pad = (n) => String(n).padStart(2, '0');
+            if (hrs > 0) return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+            return `${pad(mins)}:${pad(secs)}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            const kb = bytes / 1024;
+            if (kb < 1024) return kb.toFixed(1) + ' KB';
+            const mb = kb / 1024;
+            return mb.toFixed(1) + ' MB';
+        }
+
+        function addFilesToQueue(files) {
+            const t = I18N[currentLang] || I18N.en;
+            const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('audio/') || /\.(mp4|webm|mov|mkv|avi|mp3|wav|m4a|aac|ogg|flac)$/i.test(f.name));
+            if (valid.length === 0) {
+                showToast(t.toastValidFilesOnly);
+                return;
+            }
+
+            valid.forEach(file => {
+                const id = 'file_' + Math.random().toString(36).substr(2, 9);
+                fileQueue.push({
+                    id,
+                    file,
+                    name: file.name,
+                    size: file.size,
+                    duration: null,
+                    status: 'queued',
+                    progress: 0,
+                    statusDetail: '',
+                    transcription: '',
+                    errorMsg: ''
+                });
+            });
+
+            updateQueueUI();
+            showToast(t.toastAddedFiles(valid.length));
+        }
+
+        function updateQueueUI() {
+            const t = I18N[currentLang] || I18N.en;
+            if (fileQueue.length === 0) {
+                queueSection.style.display = 'none';
+                return;
+            }
+
+            queueSection.style.display = 'block';
+            fileCount.textContent = fileQueue.length;
+
+            const completedCount = fileQueue.filter(f => f.status === 'completed').length;
+            queueStats.textContent = t.queueStats.replace('{completed}', completedCount).replace('{total}', fileQueue.length);
+
+            const hasCompleted = completedCount > 0;
+            exportTxtBtn.disabled = !hasCompleted;
+            exportZipBtn.disabled = !hasCompleted;
+            copyAllBtn.disabled = !hasCompleted;
+
+            if (!isTranscribing) {
+                startBtn.disabled = fileQueue.every(f => f.status === 'completed');
+                startBtn.innerHTML = `<span>${t.startTranscribing}</span>`;
+                startBtn.className = 'btn btn-success';
+            }
+
+            fileList.innerHTML = '';
+            fileQueue.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `file-card ${item.status}`;
+                card.id = `card_${item.id}`;
+
+                let badgeText = item.status.toUpperCase();
+                if (item.status === 'queued') badgeText = t.statusQueued;
+                else if (item.status === 'extracting') badgeText = t.statusExtracting;
+                else if (item.status === 'transcribing') badgeText = item.statusDetail || t.statusTranscribing;
+                else if (item.status === 'completed') badgeText = t.statusCompleted;
+                else if (item.status === 'error') badgeText = t.statusError;
+
+                card.innerHTML = `
+                    <div class="file-card-header">
+                        <div class="file-info">
+                            <span class="file-badge-icon">${item.file.type.startsWith('audio/') ? '🎵' : '🎬'}</span>
+                            <div class="file-meta">
+                                <div class="file-title" title="${item.name}">${item.name}</div>
+                                <div class="file-submeta">
+                                    <span>${formatFileSize(item.size)}</span>
+                                    ${item.duration ? `<span>• ${formatTime(item.duration)}</span>` : ''}
+                                    ${item.engineUsed ? `<span style="font-weight: 600; color: #2563eb;">• ${item.engineUsed}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="file-status-group">
+                            <span class="status-pill ${item.status}">${badgeText}</span>
+                            ${!isTranscribing ? `<button class="btn-icon" title="${t.removeTooltip}" data-remove="${item.id}">✕</button>` : ''}
+                        </div>
+                    </div>
+
+                    ${item.audioUrl ? `
+                        <div style="display: flex; align-items: center; gap: 8px; margin: 2px 0 6px;">
+                            <span style="font-size: 0.76rem; font-weight: 600; color: #64748b; white-space: nowrap;">${t.extractedAudio}</span>
+                            <audio controls src="${item.audioUrl}" style="height: 26px; flex: 1; outline: none;"></audio>
+                        </div>
+                    ` : ''}
+
+                    ${item.status === 'extracting' || item.status === 'transcribing' ? `
+                        <div class="card-progress-container">
+                            <div class="card-progress-bar ${item.progress === 0 ? 'animated' : ''}" style="width: ${item.progress || 100}%;"></div>
+                        </div>
+                    ` : ''}
+
+                    ${item.status === 'error' ? `
+                        <div style="color: var(--danger); font-size: 0.82rem;">⚠️ ${item.errorMsg || 'Failed to process file.'}</div>
+                    ` : ''}
+
+                    ${item.status === 'completed' || (item.status === 'transcribing' && item.transcription) ? `
+                        <div class="transcription-area-container">
+                            <div class="transcription-area-header">
+                                <span>${t.cardTranscription}</span>
+                                <div class="card-actions">
+                                    <button class="btn btn-outline btn-sm" data-copy="${item.id}">${t.cardCopy}</button>
+                                    <button class="btn btn-outline btn-sm" data-download="${item.id}">${t.cardDownload}</button>
+                                </div>
+                            </div>
+                            <textarea class="transcription-output" data-text-id="${item.id}">${item.transcription}</textarea>
+                        </div>
+                    ` : ''}
+                `;
+
+                fileList.appendChild(card);
+            });
+
+            fileList.querySelectorAll('[data-remove]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    fileQueue = fileQueue.filter(f => f.id !== btn.getAttribute('data-remove'));
+                    updateQueueUI();
+                });
+            });
+
+            fileList.querySelectorAll('[data-copy]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const item = fileQueue.find(f => f.id === btn.getAttribute('data-copy'));
+                    if (item && item.transcription) {
+                        navigator.clipboard.writeText(item.transcription);
+                        showToast(t.toastCopiedItem(item.name));
+                    }
+                });
+            });
+
+            fileList.querySelectorAll('[data-download]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const item = fileQueue.find(f => f.id === btn.getAttribute('data-download'));
+                    if (item && item.transcription) downloadSingleTxt(item);
+                });
+            });
+
+            fileList.querySelectorAll('[data-text-id]').forEach(textarea => {
+                textarea.addEventListener('input', (e) => {
+                    const item = fileQueue.find(f => f.id === textarea.getAttribute('data-text-id'));
+                    if (item) item.transcription = e.target.value;
+                });
+            });
+        }
+
+        function clearAllFiles() {
+            const t = I18N[currentLang] || I18N.en;
+            if (isTranscribing) {
+                showToast(t.toastWaitStopping);
+                return;
+            }
+            fileQueue = [];
+            updateQueueUI();
+            showToast(t.toastQueueCleared);
+        }
+
+        // Audio extraction directly from video at native hardware sample rate
+        async function extractAudioData(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let audioBuffer;
+            try {
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            } catch (err) {
+                throw new Error("Could not decode audio from video file: " + (err.message || "Unsupported format or silent audio track"));
+            } finally {
+                if (audioContext.state !== 'closed') {
+                    try { await audioContext.close(); } catch(e) {}
+                }
+            }
+
+            const nativeSampleRate = audioBuffer.sampleRate;
+            const duration = audioBuffer.duration;
+            const numChannels = audioBuffer.numberOfChannels;
+            const totalSamples = audioBuffer.length;
+
+            // Downmix channels to single mono Float32Array
+            const monoData = new Float32Array(totalSamples);
+            if (numChannels === 1) {
+                monoData.set(audioBuffer.getChannelData(0));
+            } else {
+                const ch0 = audioBuffer.getChannelData(0);
+                const ch1 = audioBuffer.getChannelData(1);
+                for (let i = 0; i < totalSamples; i++) {
+                    monoData[i] = (ch0[i] + ch1[i]) * 0.5;
+                }
+            }
+
+            return { 
+                nativeData: monoData, 
+                nativeSampleRate,
+                duration 
+            };
+        }
+
+        // Clean linear interpolation resampling - preserves pitch, speech speed, and exact duration
+        function resampleAudio(sourceData, sourceRate, targetRate) {
+            if (sourceRate === targetRate) return sourceData;
+            const ratio = sourceRate / targetRate;
+            const newLength = Math.round(sourceData.length / ratio);
+            const result = new Float32Array(newLength);
+            for (let i = 0; i < newLength; i++) {
+                const originIndex = i * ratio;
+                const indexFloor = Math.floor(originIndex);
+                const indexCeil = Math.min(sourceData.length - 1, Math.ceil(originIndex));
+                const fraction = originIndex - indexFloor;
+                result[i] = sourceData[indexFloor] * (1 - fraction) + sourceData[indexCeil] * fraction;
+            }
+            return result;
+        }
+
+        // Convert Float32Array to 16-bit PCM WAV ArrayBuffer with correct headers
+        function float32ToWav(float32Array, sampleRate = 16000) {
+            const buffer = new ArrayBuffer(44 + float32Array.length * 2);
+            const view = new DataView(buffer);
+
+            function writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+
+            // RIFF identifier
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + float32Array.length * 2, true);
+            writeString(view, 8, 'WAVE');
+
+            // Format chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // SubChunk1Size (16 for PCM)
+            view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+            view.setUint16(22, 1, true); // NumChannels (1 for mono)
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true); // ByteRate (sampleRate * 1 * 16/8)
+            view.setUint16(32, 2, true); // BlockAlign (1 * 16/8)
+            view.setUint16(34, 16, true); // BitsPerSample
+
+            // Data chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, float32Array.length * 2, true);
+
+            // Write 16-bit PCM samples
+            let offset = 44;
+            for (let i = 0; i < float32Array.length; i++, offset += 2) {
+                let s = Math.max(-1, Math.min(1, float32Array[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+
+            return buffer;
+        }
+
+        // Native asynchronous Base64 conversion (avoids call-stack argument limits)
+        function arrayBufferToBase64(buffer) {
+            return new Promise((resolve, reject) => {
+                const blob = new Blob([buffer], { type: 'audio/wav' });
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const dataUrl = reader.result;
+                    const base64 = dataUrl.substring(dataUrl.indexOf(',') + 1);
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function getWhisperPipeline() {
+            if (transcriberPipeline) return transcriberPipeline;
+
+            modelStatusBanner.style.display = 'block';
+            modelStatusText.textContent = "Loading Whisper AI model in browser (first-time download ~40MB)...";
+            modelProgressBar.style.width = '10%';
+
+            try {
+                const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3');
+                env.allowLocalModels = false;
+
+                transcriberPipeline = await pipeline('automatic-speech-recognition', 'onnx-community/whisper-tiny', {
+                    progress_callback: (progress) => {
+                        if (progress.status === 'progress' && progress.total) {
+                            const pct = Math.round((progress.loaded / progress.total) * 100);
+                            modelProgressBar.style.width = `${pct}%`;
+                            modelStatusText.textContent = `Downloading model files: ${progress.file || ''} (${pct}%)`;
+                        } else if (progress.status === 'done') {
+                            modelStatusText.textContent = `Loaded ${progress.file || 'model component'}`;
+                        }
+                    }
+                });
+
+                modelStatusBanner.style.display = 'none';
+                return transcriberPipeline;
+            } catch (err) {
+                modelStatusBanner.style.display = 'none';
+                throw new Error("Failed to initialize in-browser Whisper model: " + err.message);
+            }
+        }
+
+        async function transcribeWithWhisper(float32Data, language, withTimestamps) {
+            const transcriber = await getWhisperPipeline();
+
+            const options = {
+                chunk_length_s: 30,
+                stride_length_s: 5,
+                return_timestamps: withTimestamps
+            };
+
+            if (language && language !== 'auto') {
+                options.language = language;
+                options.task = 'transcribe';
+            }
+
+            const output = await transcriber(float32Data, options);
+
+            if (withTimestamps && output.chunks && output.chunks.length > 0) {
+                return output.chunks.map(c => {
+                    const start = formatTime(c.timestamp[0]);
+                    const end = formatTime(c.timestamp[1]);
+                    return `[${start} - ${end}] ${c.text.trim()}`;
+                }).join('\n');
+            }
+
+            return output.text.trim();
+        }
+
+        async function transcribeWithGemini(apiKey, wavBuffer, language, withTimestamps, model = 'gemini-3.6-flash') {
+            const base64Audio = await arrayBufferToBase64(wavBuffer);
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const langInstruction = (language && language !== 'auto')
+                ? `The audio language is ${language}. Accurately transcribe speech in ${language}.`
+                : "Automatically detect the spoken language (e.g. Portuguese, English) and transcribe in that exact language.";
+
+            const timestampInstruction = withTimestamps
+                ? "Provide timestamps for each spoken phrase in [MM:SS - MM:SS] format (e.g., [00:01 - 00:04] transcribed phrase)."
+                : "Format the output into clean, natural paragraphs without timestamps.";
+
+            const promptText = `You are a high-precision speech-to-text audio transcriber.
+Task: Listen to the audio and transcribe all spoken dialogue verbatim.
+${langInstruction}
+${timestampInstruction}
+
+Critical Rules:
+1. Accurately transcribe the real words spoken by people.
+2. DO NOT repeat words endlessly or hallucinate phrases. If there is background game sound, laughter, music, or silence, do not get stuck in a repetition loop. Only transcribe actual spoken words.
+3. Output ONLY the transcribed text. Do not add conversational greetings, explanations, or notes.`;
+
+            const requestBody = {
+                contents: [
+                    {
+                        parts: [
+                            { text: promptText },
+                            { inlineData: { mimeType: "audio/wav", data: base64Audio } }
+                        ]
+                    }
+                ]
+            };
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData?.error?.message || `Gemini API returned status ${response.status}`);
+            }
+
+            const data = await response.json();
+            const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!candidateText) {
+                throw new Error("Gemini returned an empty response. Verify the audio contains audible speech.");
+            }
+
+            return candidateText.trim();
+        }
+
+        function formatAssemblyWords(words) {
+            if (!words || words.length === 0) return "";
+            const lines = [];
+            let currentWords = [];
+            let chunkStart = words[0].start;
+
+            for (let i = 0; i < words.length; i++) {
+                const w = words[i];
+                currentWords.push(w.text);
+                const endsWithPunctuation = /[.!?]$/.test(w.text);
+                const elapsedSec = (w.end - chunkStart) / 1000;
+
+                if (endsWithPunctuation || elapsedSec >= 6 || i === words.length - 1) {
+                    const startStr = formatTime(chunkStart / 1000);
+                    const endStr = formatTime(w.end / 1000);
+                    lines.push(`[${startStr} - ${endStr}] ${currentWords.join(' ')}`);
+                    currentWords = [];
+                    if (i + 1 < words.length) {
+                        chunkStart = words[i + 1].start;
+                    }
+                }
+            }
+            return lines.join('\n');
+        }
+
+        async function transcribeWithAssemblyAI(apiKey, wavBuffer, language, withTimestamps, withDiarization, onProgress) {
+            if (onProgress) onProgress("Uploading audio to AssemblyAI...", 20);
+
+            // 1. Upload audio to AssemblyAI CDN
+            const uploadRes = await fetch("https://api.assemblyai.com/v2/upload", {
+                method: "POST",
+                headers: {
+                    "Authorization": apiKey,
+                    "Content-Type": "application/octet-stream"
+                },
+                body: wavBuffer
+            });
+
+            if (!uploadRes.ok) {
+                const errData = await uploadRes.json().catch(() => ({}));
+                throw new Error(errData?.error || `AssemblyAI upload failed (HTTP ${uploadRes.status})`);
+            }
+
+            const uploadData = await uploadRes.json();
+            const audioUrl = uploadData.upload_url;
+            if (!audioUrl) {
+                throw new Error("AssemblyAI did not return an upload URL.");
+            }
+
+            if (onProgress) onProgress("Submitting transcription job...", 35);
+
+            // 2. Submit transcription job
+            const langMap = {
+                'portuguese': 'pt',
+                'english': 'en',
+                'spanish': 'es',
+                'french': 'fr',
+                'german': 'de',
+                'italian': 'it',
+                'chinese': 'zh',
+                'japanese': 'ja',
+                'korean': 'ko',
+                'russian': 'ru'
+            };
+
+            const transcriptPayload = {
+                audio_url: audioUrl,
+                speaker_labels: Boolean(withDiarization)
+            };
+
+            if (language && language !== 'auto' && langMap[language]) {
+                transcriptPayload.language_code = langMap[language];
+            } else {
+                transcriptPayload.language_detection = true;
+            }
+
+            const transcriptRes = await fetch("https://api.assemblyai.com/v2/transcript", {
+                method: "POST",
+                headers: {
+                    "Authorization": apiKey,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(transcriptPayload)
+            });
+
+            if (!transcriptRes.ok) {
+                const errData = await transcriptRes.json().catch(() => ({}));
+                throw new Error(errData?.error || `AssemblyAI transcript request failed (HTTP ${transcriptRes.status})`);
+            }
+
+            const transcriptData = await transcriptRes.json();
+            const transcriptId = transcriptData.id;
+
+            // 3. Poll for results
+            let attempts = 0;
+            const maxAttempts = 150; // up to ~6 minutes per audio clip
+
+            while (attempts < maxAttempts) {
+                if (shouldStop) {
+                    throw new Error("Transcription stopped by user.");
+                }
+
+                await new Promise(r => setTimeout(r, 2500));
+                attempts++;
+
+                const pollRes = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+                    headers: {
+                        "Authorization": apiKey
+                    }
+                });
+
+                if (!pollRes.ok) {
+                    const errData = await pollRes.json().catch(() => ({}));
+                    throw new Error(errData?.error || `AssemblyAI polling failed (HTTP ${pollRes.status})`);
+                }
+
+                const pollData = await pollRes.json();
+
+                if (pollData.status === 'completed') {
+                    if (onProgress) onProgress("Formatting transcription...", 95);
+
+                    // Case 1: Speaker Diarization
+                    if (withDiarization && pollData.utterances && pollData.utterances.length > 0) {
+                        return pollData.utterances.map(u => {
+                            const startStr = formatTime(u.start / 1000);
+                            const endStr = formatTime(u.end / 1000);
+                            const timePart = withTimestamps ? `[${startStr} - ${endStr}] ` : '';
+                            return `${timePart}Speaker ${u.speaker}: ${u.text.trim()}`;
+                        }).join('\n\n');
+                    }
+
+                    // Case 2: Timestamps without diarization
+                    if (withTimestamps && pollData.words && pollData.words.length > 0) {
+                        const formatted = formatAssemblyWords(pollData.words);
+                        if (formatted) return formatted;
+                    }
+
+                    // Case 3: Raw clean text fallback
+                    const fullText = (pollData.text || "").trim();
+                    return fullText.length > 0 ? fullText : "(No audible speech detected)";
+                } else if (pollData.status === 'error') {
+                    throw new Error(pollData.error || "AssemblyAI transcription failed.");
+                } else {
+                    const isProcessing = pollData.status === 'processing';
+                    const pct = isProcessing ? Math.min(90, 40 + attempts * 2) : 30;
+                    const msg = isProcessing ? 'Transcribing speech...' : 'Queued at AssemblyAI...';
+                    if (onProgress) onProgress(msg, pct);
+                }
+            }
+
+            throw new Error("AssemblyAI transcription timed out after 6 minutes.");
+        }
+
+        async function startBatchTranscription() {
+            const pendingItems = fileQueue.filter(f => f.status === 'queued' || f.status === 'error');
+            if (pendingItems.length === 0) {
+                showToast("No queued files to transcribe.");
+                return;
+            }
+
+            const engine = engineSelect.value;
+            const language = languageSelect.value;
+            const withTimestamps = timestampsToggle.checked;
+            const withDiarization = diarizationToggle ? diarizationToggle.checked : true;
+            let apiKey = '';
+            let selectedModel = 'gemini-3.6-flash';
+
+            if (engine === 'assemblyai') {
+                apiKey = assemblyApiKey.value.trim() || localStorage.getItem('assemblyai_api_key');
+                if (!apiKey) {
+                    showToast("Please enter an AssemblyAI API Key.");
+                    isEditingKey = true;
+                    updateEngineVisibility();
+                    assemblyApiKey.focus();
+                    return;
+                }
+            } else if (engine === 'gemini') {
+                apiKey = geminiApiKey.value.trim() || localStorage.getItem('gemini_transcribe_api_key');
+                const modelEl = document.getElementById('geminiModelSelect');
+                if (modelEl) selectedModel = modelEl.value;
+
+                if (!apiKey) {
+                    showToast("Please enter a Gemini API Key to use Cloud mode.");
+                    isEditingKey = true;
+                    updateEngineVisibility();
+                    geminiApiKey.focus();
+                    return;
+                }
+            }
+
+            isTranscribing = true;
+            shouldStop = false;
+            startBtn.className = 'btn btn-danger-outline';
+            startBtn.innerHTML = '<span>⏹ Pause / Stop</span>';
+
+            for (const item of pendingItems) {
+                if (shouldStop) break;
+
+                try {
+                    item.status = 'extracting';
+                    item.progress = 0;
+                    item.statusDetail = 'Extracting audio...';
+                    updateQueueUI();
+
+                    const audioResult = await extractAudioData(item.file);
+                    item.duration = audioResult.duration;
+                    const wavBuffer = float32ToWav(audioResult.nativeData, audioResult.nativeSampleRate);
+                    item.audioUrl = URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }));
+
+                    if (shouldStop) break;
+
+                    item.status = 'transcribing';
+                    item.progress = 20;
+                    if (engine === 'assemblyai') {
+                        item.engineUsed = 'AssemblyAI';
+                        item.statusDetail = 'Connecting to AssemblyAI...';
+                    } else if (engine === 'gemini') {
+                        item.engineUsed = selectedModel;
+                        item.statusDetail = 'Transcribing with Gemini...';
+                    } else {
+                        item.engineUsed = 'Whisper AI (Local)';
+                        item.statusDetail = 'Transcribing locally...';
+                    }
+                    updateQueueUI();
+
+                    let transcriptionText = '';
+                    if (engine === 'assemblyai') {
+                        transcriptionText = await transcribeWithAssemblyAI(
+                            apiKey,
+                            wavBuffer,
+                            language,
+                            withTimestamps,
+                            withDiarization,
+                            (statusMsg, pct) => {
+                                item.statusDetail = statusMsg;
+                                item.progress = pct;
+                                updateQueueUI();
+                            }
+                        );
+                    } else if (engine === 'gemini') {
+                        transcriptionText = await transcribeWithGemini(apiKey, wavBuffer, language, withTimestamps, selectedModel);
+                    } else {
+                        const whisper16k = resampleAudio(audioResult.nativeData, audioResult.nativeSampleRate, 16000);
+                        transcriptionText = await transcribeWithWhisper(whisper16k, language, withTimestamps);
+                    }
+
+                    item.transcription = transcriptionText;
+                    item.status = 'completed';
+                    item.statusDetail = '';
+                    item.progress = 100;
+                } catch (err) {
+                    console.error(`Error transcribing ${item.name}:`, err);
+                    item.status = 'error';
+                    item.errorMsg = err.message || 'Transcription failed';
+                }
+
+                updateQueueUI();
+            }
+
+            isTranscribing = false;
+            shouldStop = false;
+            updateQueueUI();
+            const t = I18N[currentLang] || I18N.en;
+            showToast(t.toastBatchFinished);
+        }
+
+        // Export 1: Single Combined .txt
+        function exportCombinedTxt() {
+            const t = I18N[currentLang] || I18N.en;
+            const completedItems = fileQueue.filter(f => f.status === 'completed' && f.transcription);
+            if (completedItems.length === 0) {
+                showToast(t.toastNoExport);
+                return;
+            }
+
+            const dividerDouble = "=".repeat(80);
+            const dividerSingle = "-".repeat(80);
+            const now = new Date().toLocaleString();
+
+            let fullText = `${dividerDouble}\n`;
+            fullText += `BATCH TRANSCRIPTION EXPORT\n`;
+            fullText += `Generated: ${now}\n`;
+            fullText += `Total Files Transcribed: ${completedItems.length}\n`;
+            fullText += `Engine: ${engineSelect.options[engineSelect.selectedIndex].text}\n`;
+            fullText += `${dividerDouble}\n\n`;
+
+            completedItems.forEach((item, index) => {
+                fullText += `${dividerSingle}\n`;
+                fullText += `FILE ${index + 1}/${completedItems.length}: ${item.name}\n`;
+                fullText += `Duration: ${formatTime(item.duration)} | File Size: ${formatFileSize(item.size)}\n`;
+                fullText += `Status: Completed\n`;
+                fullText += `${dividerSingle}\n\n`;
+                fullText += `${item.transcription}\n\n\n`;
+            });
+
+            const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+            triggerDownload(blob, `all_transcriptions_${getTimestampString()}.txt`);
+            showToast(t.toastDownloadedTxt);
+        }
+
+        // Export 2: ZIP folder with individual .txt files
+        async function exportZipArchive() {
+            const t = I18N[currentLang] || I18N.en;
+            if (typeof JSZip === 'undefined') {
+                showToast("JSZip library is still loading. Please try again.");
+                return;
+            }
+
+            const completedItems = fileQueue.filter(f => f.status === 'completed' && f.transcription);
+            if (completedItems.length === 0) {
+                showToast(t.toastNoExport);
+                return;
+            }
+
+            const zip = new JSZip();
+            const folderName = `transcriptions_${getTimestampString()}`;
+            const zipFolder = zip.folder(folderName);
+
+            completedItems.forEach((item) => {
+                const baseName = item.name.replace(/\.[^/.]+$/, "");
+                const fileName = `${baseName}_transcript.txt`;
+                const content = `TRANSCRIPTION: ${item.name}
+Duration: ${formatTime(item.duration)}
+File Size: ${formatFileSize(item.size)}
+Date: ${new Date().toLocaleString()}
+--------------------------------------------------------------------------------
+
+${item.transcription}
+`;
+                zipFolder.file(fileName, content);
+            });
+
+            let summaryText = `BATCH SUMMARY\nExport Date: ${new Date().toLocaleString()}\nTotal Files: ${completedItems.length}\n\nFiles Included:\n`;
+            completedItems.forEach((item, idx) => {
+                summaryText += `${idx + 1}. ${item.name} (${formatTime(item.duration)})\n`;
+            });
+            zipFolder.file("00_SUMMARY.txt", summaryText);
+
+            showToast(t.toastPackagingZip);
+            const blob = await zip.generateAsync({ type: "blob" });
+            triggerDownload(blob, `${folderName}.zip`);
+            showToast(t.toastDownloadedZip);
+        }
+
+        function downloadSingleTxt(item) {
+            const t = I18N[currentLang] || I18N.en;
+            const baseName = item.name.replace(/\.[^/.]+$/, "");
+            const content = `TRANSCRIPTION: ${item.name}
+Duration: ${formatTime(item.duration)}
+Date: ${new Date().toLocaleString()}
+--------------------------------------------------------------------------------
+
+${item.transcription}
+`;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            triggerDownload(blob, `${baseName}_transcript.txt`);
+            showToast(t.toastDownloadedItem(baseName));
+        }
+
+        function copyAllToClipboard() {
+            const t = I18N[currentLang] || I18N.en;
+            const completedItems = fileQueue.filter(f => f.status === 'completed' && f.transcription);
+            if (completedItems.length === 0) {
+                showToast(t.toastNoCopy);
+                return;
+            }
+
+            let fullText = "";
+            completedItems.forEach((item) => {
+                fullText += `[${item.name}]\n${item.transcription}\n\n`;
+            });
+
+            navigator.clipboard.writeText(fullText);
+            showToast(t.toastCopiedAll);
+        }
+
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function getTimestampString() {
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+        }
+    </script>
+</body>
+</html>
+
