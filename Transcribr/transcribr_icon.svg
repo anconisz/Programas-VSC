@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgT3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c162b"/>
+      <stop offset="50%" stop-color="#080e1b"/>
+      <stop offset="100%" stop-color="#04060d"/>
+    </linearGradient>
+    <linearGradient id="borderT3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.4"/>
+    </linearGradient>
+    <radialGradient id="glowT3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#6366f1" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="micBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="textLinesGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#93c5fd"/>
+    </linearGradient>
+    <filter id="softGlowT3" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle container: 880x880 centered at (512,512) -->
+  <rect x="72" y="72" width="880" height="880" rx="200" ry="200" fill="url(#bgT3)" stroke="url(#borderT3)" stroke-width="4"/>
+  <circle cx="512" cy="512" r="340" fill="url(#glowT3)" />
+
+  <!-- Left: Stylized Studio Microphone -->
+  <g transform="translate(320, 512)">
+    <!-- Glow behind mic -->
+    <circle cx="0" cy="-25" r="130" fill="#3b82f6" opacity="0.15" filter="url(#softGlowT3)"/>
+    
+    <!-- Microphone Capsule -->
+    <rect x="-54" y="-170" width="108" height="180" rx="54" fill="url(#micBodyGrad)" stroke="#ffffff" stroke-width="4" stroke-opacity="0.4"/>
+    
+    <!-- Capsule Mesh Ring -->
+    <line x1="-50" y1="-78" x2="50" y2="-78" stroke="#ffffff" stroke-width="4" stroke-opacity="0.5" stroke-linecap="round"/>
+    
+    <!-- Microphone U-Mount Cradle -->
+    <path d="M -82,-65 C -82,55 82,55 82,-65" fill="none" stroke="#60a5fa" stroke-width="16" stroke-linecap="round"/>
+    
+    <!-- Stem & Base Stand -->
+    <line x1="0" y1="55" x2="0" y2="135" stroke="#60a5fa" stroke-width="16" stroke-linecap="round"/>
+    <line x1="-60" y1="135" x2="60" y2="135" stroke="#60a5fa" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <!-- Sound Waves propagating into Text -->
+  <g stroke-linecap="round" fill="none">
+    <path d="M 465, 420 C 495, 460 495, 560 465, 600" stroke="#38bdf8" stroke-width="12" stroke-opacity="0.8"/>
+    <path d="M 505, 375 C 555, 435 555, 585 505, 645" stroke="#818cf8" stroke-width="12" stroke-opacity="0.5"/>
+  </g>
+
+  <!-- Right: Transcription Output (Document Text Lines) -->
+  <g fill="url(#textLinesGrad)" transform="translate(570, 365)">
+    <!-- Line 1: Header -->
+    <rect x="0" y="0" width="230" height="24" rx="12" />
+    <!-- Line 2: Body -->
+    <rect x="0" y="65" width="275" height="22" rx="11" fill-opacity="0.95"/>
+    <!-- Line 3: Body -->
+    <rect x="0" y="130" width="245" height="22" rx="11" fill-opacity="0.95"/>
+    <!-- Line 4: Body -->
+    <rect x="0" y="195" width="265" height="22" rx="11" fill-opacity="0.95"/>
+    <!-- Line 5: Last line with live typing cursor -->
+    <rect x="0" y="260" width="165" height="22" rx="11" fill-opacity="0.95"/>
+    <!-- Cursor -->
+    <rect x="180" y="254" width="7" height="34" rx="3.5" fill="#38bdf8" filter="url(#softGlowT3)"/>
+  </g>
+</svg>

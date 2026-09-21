@@ -518,7 +518,7 @@
             width: 100%;
             height: 100%;
             opacity: 0;
-            cursor: pointer;
+            pointer-events: none;
         }
 
         .drop-icon {
@@ -1030,8 +1030,8 @@
                 <input type="file" id="fileInput" multiple accept="video/*,audio/*" class="file-input-hidden">
                 <div class="dropzone-content">
                     <div class="drop-icon">🎬</div>
-                    <h3 id="dropzoneTitle">Drag & Drop video files here</h3>
-                    <p id="dropzoneDesc">Supports MP4, WebM, MOV, MKV, AVI, and audio formats (MP3, WAV, M4A)</p>
+                    <h3 id="dropzoneTitle">Drag & Drop video files or folders here</h3>
+                    <p id="dropzoneDesc">Supports video folders, MP4, WebM, MOV, MKV, AVI, and audio formats (MP3, WAV, M4A)</p>
                     <button type="button" class="btn btn-primary browse-btn" id="browseBtn">
                         <span id="browseBtnText">Select Video Files</span>
                     </button>
@@ -1188,8 +1188,8 @@
                 labelGeminiModel: "Model:",
                 helperGeminiKey: "Your API key is saved locally in your browser's <code>localStorage</code> and never sent to any third-party server.",
                 modelStatusPrep: "Preparing Whisper AI engine...",
-                dropzoneTitle: "Drag & Drop video files here",
-                dropzoneDesc: "Supports MP4, WebM, MOV, MKV, AVI, and audio formats (MP3, WAV, M4A)",
+                dropzoneTitle: "Drag & Drop video files or folders here",
+                dropzoneDesc: "Supports video folders, MP4, WebM, MOV, MKV, AVI, and audio formats (MP3, WAV, M4A)",
                 browseBtn: "Select Video Files",
                 queueTitle: "Video Queue",
                 queueStats: "{completed} of {total} completed",
@@ -1276,8 +1276,8 @@
                 labelGeminiModel: "Modelo:",
                 helperGeminiKey: "Sua chave é salva localmente no <code>localStorage</code> do navegador e nunca é enviada a terceiros.",
                 modelStatusPrep: "Preparando motor Whisper AI...",
-                dropzoneTitle: "Arraste e solte arquivos de vídeo aqui",
-                dropzoneDesc: "Suporta MP4, WebM, MOV, MKV, AVI e formatos de áudio (MP3, WAV, M4A)",
+                dropzoneTitle: "Arraste e solte arquivos de vídeo ou pastas aqui",
+                dropzoneDesc: "Suporta pastas com vídeos, MP4, WebM, MOV, MKV, AVI e formatos de áudio (MP3, WAV, M4A)",
                 browseBtn: "Selecionar Arquivos de Vídeo",
                 queueTitle: "Fila de Vídeos",
                 queueStats: "{completed} de {total} concluídos",
@@ -1557,18 +1557,135 @@
             });
         });
 
-        ['dragleave', 'drop'].forEach(name => {
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => e.preventDefault());
+
+        ['dragenter', 'dragover'].forEach(name => {
             dropzone.addEventListener(name, (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                dropzone.classList.remove('drag-over');
+                dropzone.classList.add('drag-over');
             });
         });
 
-        dropzone.addEventListener('drop', (e) => {
+        dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('drag-over');
+        });
+
+        // Recursive folder traversal functions for drag & drop
+        async function getFilesFromDataTransfer(dt) {
+            const files = [];
+            const folderPromises = [];
+
+            if (dt.items && dt.items.length > 0) {
+                for (let i = 0; i < dt.items.length; i++) {
+                    const item = dt.items[i];
+                    if (item.kind !== 'file') continue;
+
+                    let entry = null;
+                    if (typeof item.webkitGetAsEntry === 'function') {
+                        try {
+                            entry = item.webkitGetAsEntry();
+                        } catch (e) {
+                            entry = null;
+                        }
+                    }
+
+                    if (entry && entry.isDirectory) {
+                        folderPromises.push(readDirRecursive(entry));
+                    } else {
+                        const f = item.getAsFile();
+                        if (f) {
+                            files.push(f);
+                        } else if (entry && entry.isFile) {
+                            folderPromises.push(new Promise(res => entry.file(file => res(file ? [file] : []), () => res([]))));
+                        }
+                    }
+                }
+            }
+
+            if (folderPromises.length > 0) {
+                try {
+                    const folderResults = await Promise.all(folderPromises);
+                    files.push(...folderResults.flat());
+                } catch (e) {
+                    console.warn('Error reading folder entries:', e);
+                }
+            }
+
+            if (files.length === 0 && dt.files && dt.files.length > 0) {
+                files.push(...Array.from(dt.files));
+            }
+
+            files.sort((a, b) => a.name.localeCompare(undefined, { numeric: true, sensitivity: 'base' }));
+            return files;
+        }
+
+        async function readDirRecursive(dirEntry) {
+            const files = [];
+            const dirReader = dirEntry.createReader();
+
+            const readEntriesBatch = () => {
+                return new Promise((resolve) => {
+                    dirReader.readEntries(
+                        results => resolve(results || []),
+                        () => resolve([])
+                    );
+                });
+            };
+
+            const entries = [];
+            let batch;
+            do {
+                batch = await readEntriesBatch();
+                if (batch && batch.length > 0) {
+                    entries.push(...batch);
+                }
+            } while (batch && batch.length > 0);
+
+            for (const entry of entries) {
+                if (entry.isFile) {
+                    const file = await new Promise(resolve => {
+                        entry.file(
+                            f => resolve(f),
+                            () => resolve(null)
+                        );
+                    });
+                    if (file) files.push(file);
+                } else if (entry.isDirectory) {
+                    const subFiles = await readDirRecursive(entry);
+                    files.push(...subFiles);
+                }
+            }
+
+            return files;
+        }
+
+        dropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('drag-over');
+
             const dt = e.dataTransfer;
-            if (dt && dt.files && dt.files.length > 0) {
-                addFilesToQueue(Array.from(dt.files));
+            if (!dt) return;
+
+            // Direct fallback list from dt.files immediately before any async gap
+            const immediateFiles = (dt.files && dt.files.length > 0) ? Array.from(dt.files) : [];
+
+            try {
+                const files = await getFilesFromDataTransfer(dt);
+                if (files && files.length > 0) {
+                    addFilesToQueue(files);
+                } else if (immediateFiles.length > 0) {
+                    addFilesToQueue(immediateFiles);
+                }
+            } catch (err) {
+                console.error('Error handling drop:', err);
+                if (immediateFiles.length > 0) {
+                    addFilesToQueue(immediateFiles);
+                }
             }
         });
 
@@ -1673,7 +1790,7 @@
 
         function addFilesToQueue(files) {
             const t = I18N[currentLang] || I18N.en;
-            const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('audio/') || /\.(mp4|webm|mov|mkv|avi|mp3|wav|m4a|aac|ogg|flac)$/i.test(f.name));
+            const valid = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('audio/') || /\.(mp4|webm|mov|mkv|avi|mp3|wav|m4a|aac|ogg|flac|wmv|m4v|3gp|flv|ts|mts|m2ts|vob|ogv)$/i.test(f.name));
             if (valid.length === 0) {
                 showToast(t.toastValidFilesOnly);
                 return;

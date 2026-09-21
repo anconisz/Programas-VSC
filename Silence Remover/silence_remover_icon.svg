@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgS3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1424"/>
+      <stop offset="50%" stop-color="#090c17"/>
+      <stop offset="100%" stop-color="#04060c"/>
+    </linearGradient>
+    <linearGradient id="borderS3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="cyanBars" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="purpleBars" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+    <radialGradient id="glowS3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#c084fc" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlowS3" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle container: 880x880 centered at (512,512) -->
+  <rect x="72" y="72" width="880" height="880" rx="200" ry="200" fill="url(#bgS3)" stroke="url(#borderS3)" stroke-width="4"/>
+  <circle cx="512" cy="512" r="340" fill="url(#glowS3)" />
+
+  <!-- Left Audio Waveform Bars (Cyan) -->
+  <g fill="url(#cyanBars)">
+    <rect x="180" y="470" width="28" height="84" rx="14" />
+    <rect x="232" y="415" width="28" height="194" rx="14" />
+    <rect x="284" y="340" width="28" height="344" rx="14" />
+    <rect x="336" y="260" width="28" height="504" rx="14" />
+    <rect x="388" y="360" width="28" height="304" rx="14" />
+    <rect x="440" y="430" width="28" height="164" rx="14" />
+  </g>
+
+  <!-- Center Cutting Guide / Scissor Area -->
+  <line x1="512" y1="210" x2="512" y2="814" stroke="#ffffff" stroke-opacity="0.3" stroke-width="4" stroke-dasharray="16 12" stroke-linecap="round"/>
+
+  <!-- Minimalist Clean Scissors in Center -->
+  <g transform="translate(512, 512) scale(2.0)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Top loop -->
+    <circle cx="-16" cy="-26" r="11" fill="none" stroke="#ffffff" stroke-width="5"/>
+    <path d="M -8,-18 L 4,-3 L 26,14" fill="none" stroke="#ffffff" stroke-width="5"/>
+    <!-- Bottom loop -->
+    <circle cx="-16" cy="26" r="11" fill="none" stroke="#ffffff" stroke-width="5"/>
+    <path d="M -8,18 L 4,3 L 26,-14" fill="none" stroke="#ffffff" stroke-width="5"/>
+    <!-- Center pivot -->
+    <circle cx="4" cy="0" r="3.5" fill="#38bdf8" />
+  </g>
+
+  <!-- Right Audio Waveform Bars (Purple / Rose) -->
+  <g fill="url(#purpleBars)">
+    <rect x="556" y="430" width="28" height="164" rx="14" />
+    <rect x="608" y="340" width="28" height="344" rx="14" />
+    <rect x="660" y="270" width="28" height="484" rx="14" />
+    <rect x="712" y="355" width="28" height="314" rx="14" />
+    <rect x="764" y="415" width="28" height="194" rx="14" />
+    <rect x="816" y="470" width="28" height="84" rx="14" />
+  </g>
+</svg>

@@ -33,10 +33,10 @@ Cada subpasta contém um aplicativo utilitário independente, desenvolvido com t
 
 ---
 
-## 📌 Padrão de Organização
+## 🎨 Processo Criativo
 
-Para novos utilitários criados nesta pasta:
-* Crie uma subpasta exclusiva para o programa.
-* Mantenha a interface no arquivo `.html`.
-* Inclua ícones (`app_icon.ico`, `app_icon.png`) e o executável `.exe` de inicialização para manter o padrão desktop.
+1. **Identificação da Demanda**: Idealização de ferramentas leves para resolver tarefas práticas e rotineiras de uso pessoal com foco em eficiência.
+2. **Desenvolvimento Web Local**: Implementação de interfaces modernas e intuitivas utilizando tecnologias web puras (HTML5, CSS3 e JavaScript), operando 100% offline.
+3. **Identidade Visual Minimalista**: Criação de ícones modernos, vetoriais e integrados ao desktop (com transparência nativa e metáforas visuais claras, sem textos redundantes ou bordas de captura de tela).
+4. **Experiência de Aplicativo Nativo**: Integração com executáveis leves (`.exe`) que iniciam o utilitário diretamente em modo de janela dedicada, com ícone próprio na Barra de Tarefas do Windows.
 
